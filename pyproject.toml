@@ -1,0 +1,40 @@
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[project]
+name = "electrospinning-data-client"
+version = "0.1.0"
+description = "A production-ready Python client for the Electrospinning Data Public API"
+readme = "README.md"
+requires-python = ">=3.8"
+license = "MIT"
+authors = [
+    { name = "Electrospinning Data Team", email = "support@electrospinning-data.org" },
+]
+keywords = ["electrospinning", "data", "science", "api", "client", "research"]
+classifiers = [
+    "Development Status :: 4 - Beta",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.8",
+    "Programming Language :: Python :: 3.9",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "License :: OSI Approved :: MIT License",
+    "Operating System :: OS Independent",
+    "Intended Audience :: Science/Research",
+    "Topic :: Scientific/Engineering :: Chemistry",
+    "Topic :: Scientific/Engineering :: Physics",
+]
+dependencies = [
+    "requests>=2.25.0",
+    "pandas>=1.2.0",
+]
+
+[project.urls]
+"Homepage" = "https://electrospinning-data.org"
+"Documentation" = "https://docs.electrospinning-data.org/api/api-guide"
+"Repository" = "https://github.com/electrospinning-data/python-client"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/electrospinning_data_client_client"]
