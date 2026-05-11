@@ -13,7 +13,7 @@ def main():
     client = ed.ElectrospinningDataClient()
     
     # 2. Build a complex filter using the fluent API
-    # We want PAN nanofibers produced between 15kV and 25kV
+    # We want PAN produced between 15kV and 25kV
     filters = FilterBuilder() \
         .polymer("PAN") \
         .voltage(min_val=15, max_val=25)
@@ -40,8 +40,8 @@ def main():
         print(df['fiberDiameter'].describe())
 
         # 5. (Optional) Export to Excel
-        output_file = "filtered_nanofibers.xlsx"
-        client.export_file(output_file, format="xlsx", filters=filters)
+        output_file = "filtered_data.xlsx"
+        client.export_file(output_file, export_format="xlsx", filters=filters)
         print(f"\nResults successfully exported to {output_file}")
 
     except Exception as e:

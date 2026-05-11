@@ -2,7 +2,7 @@
 set -e
 
 # build.sh
-# Builds the electrospinning-data-client package into wheel and sdist.
+# Builds the electrospinning_data_client package into wheel and sdist.
 
 # Move to the project root (one level up from scripts/)
 cd "$(dirname "$0")/.."

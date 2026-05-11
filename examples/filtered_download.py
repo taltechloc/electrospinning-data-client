@@ -5,10 +5,9 @@ import electrospinning_data_client as ed
 
 def main():
     # Define filters
-    # Here we look for PAN nanofibers produced at 25kV
+    # Here we look for PAN produced at 25kV
     filters = {
         "polymer": "PAN",
-        "morphology": "Nanofiber",
         "voltageMin": 24,
         "voltageMax": 26
     }

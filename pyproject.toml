@@ -3,7 +3,7 @@ requires = ["hatchling"]
 build-backend = "hatchling.build"
 
 [project]
-name = "electrospinning-data-client"
+name = "electrospinning_data_client"
 version = "0.1.0"
 description = "A production-ready Python client for the Electrospinning Data Public API"
 readme = "README.md"
@@ -11,6 +11,8 @@ requires-python = ">=3.8"
 license = "MIT"
 authors = [
     { name = "Electrospinning Data Team", email = "support@electrospinning-data.org" },
+    { name = "Mehrab Mahdian", email = "mehrab.mahdian@taltech.ee" },
+
 ]
 keywords = ["electrospinning", "data", "science", "api", "client", "research"]
 classifiers = [
@@ -34,7 +36,7 @@ dependencies = [
 [project.urls]
 "Homepage" = "https://electrospinning-data.org"
 "Documentation" = "https://docs.electrospinning-data.org/api/api-guide"
-"Repository" = "https://github.com/electrospinning-data/python-client"
+"Repository" = "https://github.com/taltechloc/electrospinning-data-client"
 
 [tool.hatch.build.targets.wheel]
-packages = ["src/electrospinning_data_client_client"]
+packages = ["src/electrospinning_data_client"]

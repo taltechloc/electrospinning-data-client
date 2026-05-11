@@ -2,7 +2,7 @@
 set -e
 
 # dist.sh
-# Uploads the built electrospinning-data-client artifacts to PyPI using twine.
+# Uploads the built electrospinning_data_client artifacts to PyPI using twine.
 
 # Move to the project root (one level up from scripts/)
 cd "$(dirname "$0")/.."

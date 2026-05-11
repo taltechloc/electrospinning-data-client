@@ -34,7 +34,7 @@ print(df.head())
 
 ### Apply Filters
 
-Recover PAN nanofibers produced with voltage between 20 and 30 kV:
+Recover PAN produced with voltage between 20 and 30 kV:
 
 ```python
 filters = {
@@ -63,10 +63,10 @@ df_v1 = ed.load_versioned_dataset("v1.0.0")
 client = ed.ElectrospinningDataClient()
 
 # Export to Excel
-client.export_file("my_data.xlsx", format="xlsx", filters={"polymer": "PAN"})
+client.export_file("my_data.xlsx", export_format="xlsx", filters={"polymer": "PAN"})
 
 # Download image archive
-client.export_file("images.zip", format="zip")
+client.export_file("images.zip", export_format="zip")
 ```
 
 ## API Reference
@@ -78,7 +78,7 @@ Main class for API interaction.
 - `get_versions()`: Returns a list of available dataset versions.
 - `download_latest(filters=None)`: Returns a pandas DataFrame of the latest records.
 - `download_version(version, filters=None)`: Returns a pandas DataFrame for a specific version.
-- `export_file(output_path, format='xlsx', version='latest', filters=None)`: Saves data to a local file.
+- `export_file(output_path, export_format='xlsx', version='latest', filters=None)`: Saves data to a local file.
 - `load_records(skip=0, limit=100, version='latest', filters=None)`: Returns a raw dictionary of paginated records.
 
 ## License
