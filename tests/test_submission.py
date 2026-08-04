@@ -26,6 +26,18 @@ class TestSubmissionService(unittest.TestCase):
         with self.assertRaises(AuthenticationError):
             client.get_submission_status(123)
 
+    def test_list_my_records_without_token_raises_authentication_error(self):
+        client = ElectrospinningDataClient(base_url="https://api.example.com/public/dataset")
+
+        with self.assertRaises(AuthenticationError):
+            client.list_my_records()
+
+    def test_list_my_record_ids_without_token_raises_authentication_error(self):
+        client = ElectrospinningDataClient(base_url="https://api.example.com/public/dataset")
+
+        with self.assertRaises(AuthenticationError):
+            client.list_my_record_ids()
+
     @patch('requests.Session.request')
     def test_submit_sends_bearer_token_to_derived_api_root(self, mock_request):
         mock_response = MagicMock()
@@ -154,6 +166,71 @@ class TestSubmissionService(unittest.TestCase):
         args, kwargs = mock_request.call_args
         self.assertEqual(args[0], "GET")
         self.assertEqual(args[1], "https://api.example.com/data/submission/8")
+        self.assertEqual(kwargs["headers"]["Authorization"], "Bearer esd_pat_testtoken123")
+
+    @patch('requests.Session.request')
+    def test_list_my_records_without_status_omits_filter_and_returns_everything(self, mock_request):
+        mock_response = MagicMock()
+        mock_response.ok = True
+        mock_response.json.return_value = [
+            {"recordId": 1, "status": "PENDING"},
+            {"recordId": 2, "status": "NEEDS_UPDATE"},
+            {"recordId": 3, "status": "APPROVED"},
+        ]
+        mock_request.return_value = mock_response
+
+        client = ElectrospinningDataClient(
+            base_url="https://api.example.com/public/dataset",
+            api_token="esd_pat_testtoken123"
+        )
+
+        result = client.list_my_records()
+
+        self.assertEqual(len(result), 3)
+        args, kwargs = mock_request.call_args
+        self.assertEqual(args[0], "GET")
+        self.assertEqual(args[1], "https://api.example.com/data/my-records")
+        self.assertIsNone(kwargs["params"])
+        self.assertEqual(kwargs["headers"]["Authorization"], "Bearer esd_pat_testtoken123")
+
+    @patch('requests.Session.request')
+    def test_list_my_records_with_status_filters_to_needs_update(self, mock_request):
+        mock_response = MagicMock()
+        mock_response.ok = True
+        mock_response.json.return_value = [{"recordId": 2, "status": "NEEDS_UPDATE"}]
+        mock_request.return_value = mock_response
+
+        client = ElectrospinningDataClient(
+            base_url="https://api.example.com/public/dataset",
+            api_token="esd_pat_testtoken123"
+        )
+
+        result = client.list_my_records(status="NEEDS_UPDATE")
+
+        self.assertEqual(result, [{"recordId": 2, "status": "NEEDS_UPDATE"}])
+        args, kwargs = mock_request.call_args
+        self.assertEqual(args[1], "https://api.example.com/data/my-records")
+        self.assertEqual(kwargs["params"], {"status": "NEEDS_UPDATE"})
+
+    @patch('requests.Session.request')
+    def test_list_my_record_ids_filters_to_needs_update(self, mock_request):
+        mock_response = MagicMock()
+        mock_response.ok = True
+        mock_response.json.return_value = [2, 5, 9]
+        mock_request.return_value = mock_response
+
+        client = ElectrospinningDataClient(
+            base_url="https://api.example.com/public/dataset",
+            api_token="esd_pat_testtoken123"
+        )
+
+        result = client.list_my_record_ids(status="NEEDS_UPDATE")
+
+        self.assertEqual(result, [2, 5, 9])
+        args, kwargs = mock_request.call_args
+        self.assertEqual(args[0], "GET")
+        self.assertEqual(args[1], "https://api.example.com/data/my-records/ids")
+        self.assertEqual(kwargs["params"], {"status": "NEEDS_UPDATE"})
         self.assertEqual(kwargs["headers"]["Authorization"], "Bearer esd_pat_testtoken123")
 
     @patch('requests.Session.request')

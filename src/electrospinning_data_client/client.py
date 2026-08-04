@@ -248,6 +248,53 @@ class ElectrospinningDataClient:
         """
         return self._submission_service.get_submission(submission_id)
 
+    def list_my_records(self, status: Optional[str] = None) -> List[Dict[str, Any]]:
+        """
+        List your own submitted experiment records (flat, not grouped by
+        submission), optionally filtered to a single status. This gives you the
+        freedom to query your data per status or all together:
+
+            client.list_my_records()                     # every record, any status
+            client.list_my_records(status="NEEDS_UPDATE")  # only incomplete records
+            client.list_my_records(status="PENDING")       # only records awaiting review
+
+        Requires `api_token`.
+
+        Args:
+            status: One of "PENDING", "APPROVED", "REJECTED", "NEEDS_UPDATE", or
+                None (default) for every status combined.
+
+        Returns:
+            A list of full experiment record dicts (same shape as items in
+            `submit_experiment`'s `experimentData`), each with its own `status`.
+
+        Raises:
+            AuthenticationError: If no `api_token` was configured.
+            APIError: If the server rejects the token.
+        """
+        return self._submission_service.list_my_records(status)
+
+    def list_my_record_ids(self, status: Optional[str] = None) -> List[int]:
+        """
+        Same filtering as `list_my_records`, but returns only record ids -
+        useful for cheaply checking what needs attention (e.g. how many records
+        are NEEDS_UPDATE) before fetching full data.
+
+        Requires `api_token`.
+
+        Args:
+            status: One of "PENDING", "APPROVED", "REJECTED", "NEEDS_UPDATE", or
+                None (default) for every status combined.
+
+        Returns:
+            A list of record ids (ints).
+
+        Raises:
+            AuthenticationError: If no `api_token` was configured.
+            APIError: If the server rejects the token.
+        """
+        return self._submission_service.list_my_record_ids(status)
+
     def close(self) -> None:
         """Close the underlying transport and release resources."""
         if hasattr(self.transport, 'close'):

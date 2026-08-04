@@ -94,6 +94,14 @@ client.update_experiment(result["records"][0]["recordId"], {
 # -> status flips back to "PENDING"
 ```
 
+Query your own records by status - separately or all together:
+
+```python
+needs_update_ids = client.list_my_record_ids(status="NEEDS_UPDATE")  # ids only, cheap
+needs_update_records = client.list_my_records(status="NEEDS_UPDATE")  # full data
+all_my_records = client.list_my_records()  # every status combined
+```
+
 Reading/downloading the dataset never requires a token. See the [Authentication guide](https://electrospinning-data.org/docs/api/authentication) for details, record statuses, token expiry/revocation, and error handling.
 
 ## API Reference
@@ -110,6 +118,8 @@ Main class for API interaction.
 - `submit_experiment(payload)`: Submits a new experiment record. Requires `api_token`. Returns a dict with per-record `status`/`missingFields`; missing mandatory fields are saved as `NEEDS_UPDATE` rather than raising.
 - `update_experiment(experiment_id, payload)`: Updates an existing experiment record. Requires `api_token`.
 - `get_submission_status(submission_id)`: Retrieves the current status of a submission you own. Requires `api_token`.
+- `list_my_records(status=None)`: Lists your own submitted records, optionally filtered to one status (`PENDING`/`APPROVED`/`REJECTED`/`NEEDS_UPDATE`), or every status if omitted. Requires `api_token`.
+- `list_my_record_ids(status=None)`: Same filtering as `list_my_records`, but returns only record ids. Requires `api_token`.
 
 ## License
 

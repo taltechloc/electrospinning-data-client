@@ -1,4 +1,4 @@
-from typing import Any, Dict, Optional
+from typing import Any, Dict, List, Optional
 
 from ..exceptions import AuthenticationError
 from ..transport import Transport
@@ -47,5 +47,27 @@ class SubmissionService:
         headers = self._auth_headers()
         response = self._transport.request(
             "GET", f"{self._root_url}/data/submission/{submission_id}", headers=headers
+        )
+        return response.json()
+
+    def list_my_records(self, status: Optional[str] = None) -> List[Dict[str, Any]]:
+        """
+        GET the caller's own experiment records, optionally filtered to a single
+        status (e.g. "NEEDS_UPDATE"). Omit `status` to get every record
+        regardless of status.
+        """
+        headers = self._auth_headers()
+        params = {"status": status} if status else None
+        response = self._transport.request(
+            "GET", f"{self._root_url}/data/my-records", headers=headers, params=params
+        )
+        return response.json()
+
+    def list_my_record_ids(self, status: Optional[str] = None) -> List[int]:
+        """Same filtering as `list_my_records`, but returns only record ids."""
+        headers = self._auth_headers()
+        params = {"status": status} if status else None
+        response = self._transport.request(
+            "GET", f"{self._root_url}/data/my-records/ids", headers=headers, params=params
         )
         return response.json()
