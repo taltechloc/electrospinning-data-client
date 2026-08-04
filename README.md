@@ -69,6 +69,22 @@ client.export_file("my_data.xlsx", export_format="xlsx", filters={"polymer": "PA
 client.export_file("images.zip", export_format="zip")
 ```
 
+### Submitting Data
+
+Submitting or updating experiment records requires a personal access token, created from your profile settings on [electrospinning-data.org](https://electrospinning-data.org) (Profile Settings → API Tokens):
+
+```python
+client = ed.ElectrospinningDataClient(api_token="esd_pat_your_token_here")
+
+result = client.submit_experiment({
+    "userMetadata": {"name": "Jane Doe", "email": "jane@example.com", "consentTerms": True},
+    "researchMetadata": {"publicationTitle": "My study"},
+    "experimentData": [{"polymerProperty": {}, "processParameter": {}}],
+})
+```
+
+Reading/downloading the dataset never requires a token. See the [Authentication guide](https://electrospinning-data.org/docs/api/authentication) for details, token expiry/revocation, and error handling.
+
 ## API Reference
 
 ### `ElectrospinningDataClient`
@@ -80,6 +96,8 @@ Main class for API interaction.
 - `download_version(version, filters=None)`: Returns a pandas DataFrame for a specific version.
 - `export_file(output_path, export_format='xlsx', version='latest', filters=None)`: Saves data to a local file.
 - `load_records(skip=0, limit=100, version='latest', filters=None)`: Returns a raw dictionary of paginated records.
+- `submit_experiment(payload)`: Submits a new experiment record. Requires `api_token`.
+- `update_experiment(experiment_id, payload)`: Updates an existing experiment record. Requires `api_token`.
 
 ## License
 

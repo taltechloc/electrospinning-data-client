@@ -3,11 +3,12 @@ import pandas as pd
 
 from .client import ElectrospinningDataClient
 from .exceptions import (
-    ElectrospinningError, 
-    APIError, 
-    ValidationError, 
-    TransportError, 
-    ParsingError
+    ElectrospinningError,
+    APIError,
+    ValidationError,
+    TransportError,
+    ParsingError,
+    AuthenticationError
 )
 from .filters import FilterBuilder
 from .models import ExperimentRecord, VersionInfo
@@ -29,6 +30,7 @@ __all__ = [
     "ValidationError", 
     "TransportError",
     "ParsingError",
+    "AuthenticationError",
     "load_latest_dataset",
     "load_versioned_dataset"
 ]

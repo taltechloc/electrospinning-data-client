@@ -1,4 +1,5 @@
 from typing import List, Dict, Any, Optional, Union
+from urllib.parse import urlsplit
 
 import pandas as pd
 
@@ -6,6 +7,7 @@ from .filters import FilterBuilder
 from .mappers import DataFrameMapper
 from .models import ExperimentRecord, VersionInfo
 from .services.dataset import DatasetService
+from .services.submission import SubmissionService
 from .services.version import VersionService
 from .transport import Transport, RequestsTransport
 
@@ -22,25 +24,41 @@ class ElectrospinningDataClient:
         base_url: str = "https://api.electrospinning-data.org/public/dataset",
         transport: Optional[Transport] = None,
         timeout: int = 60,
-        verify: bool = True
+        verify: bool = True,
+        api_token: Optional[str] = None,
+        api_base_url: Optional[str] = None
     ):
         """
         Initialize the Electrospinning Hub API client.
 
         Args:
-            base_url: The base URL of the public API.
+            base_url: The base URL of the public (read) API.
             transport: Custom HTTP transport implementation.
             timeout: Default request timeout in seconds.
             verify: Whether to verify SSL certificates.
+            api_token: Personal access token (created from your profile settings on
+                the website) used to authenticate write operations such as
+                `submit_experiment`. Not required for any read/download method.
+            api_base_url: Root URL of the API used for write operations, e.g.
+                "https://api.electrospinning-data.org". Defaults to the scheme and
+                host of `base_url`, since write endpoints live outside the
+                `/public/dataset` read API.
         """
         self.base_url = base_url.rstrip("/")
         self.transport = transport or RequestsTransport(
             timeout=timeout, verify=verify
         )
 
+        if api_base_url:
+            self.api_base_url = api_base_url.rstrip("/")
+        else:
+            parsed = urlsplit(self.base_url)
+            self.api_base_url = f"{parsed.scheme}://{parsed.netloc}"
+
         # Internal services
         self._dataset_service = DatasetService(self.transport, self.base_url)
         self._version_service = VersionService(self.transport, self.base_url)
+        self._submission_service = SubmissionService(self.transport, self.api_base_url, api_token)
 
     def download_latest(
         self,
@@ -137,6 +155,54 @@ class ElectrospinningDataClient:
             version=version,
             filters=filters
         )
+
+    def submit_experiment(self, payload: Dict[str, Any]) -> str:
+        """
+        Submit a new experiment record for moderation. Requires `api_token` to
+        have been passed when constructing the client - create a token from
+        your profile settings on the website first.
+
+        `payload` is a plain dict matching the submission JSON shape used by the
+        website's submission form, e.g.:
+
+            {
+                "userMetadata": {"name": "...", "email": "...", "consentTerms": True},
+                "researchMetadata": {"publicationTitle": "...", "doi": "..."},
+                "experimentData": [{"polymerProperty": {...}, "processParameter": {...}, ...}]
+            }
+
+        Args:
+            payload: The submission payload.
+
+        Returns:
+            The raw server response text (a status message).
+
+        Raises:
+            AuthenticationError: If no `api_token` was configured.
+            APIError: If the server rejects the token (missing/invalid/expired/revoked)
+                or the payload.
+        """
+        return self._submission_service.submit(payload)
+
+    def update_experiment(self, experiment_id: int, payload: Dict[str, Any]) -> str:
+        """
+        Update an existing experiment record you previously submitted. Requires
+        `api_token` to have been passed when constructing the client. See
+        `submit_experiment` for the payload shape.
+
+        Args:
+            experiment_id: The id of the experiment record to update.
+            payload: The updated submission payload.
+
+        Returns:
+            The raw server response text (a status message).
+
+        Raises:
+            AuthenticationError: If no `api_token` was configured.
+            APIError: If the server rejects the token or the request (e.g. you
+                don't own the experiment).
+        """
+        return self._submission_service.update(experiment_id, payload)
 
     def close(self) -> None:
         """Close the underlying transport and release resources."""

@@ -13,6 +13,10 @@ class APIError(ElectrospinningError):
         self.status_code = status_code
         self.response_body = response_body
 
+class AuthenticationError(ElectrospinningError):
+    """Raised when a write operation is attempted without a configured API token."""
+    pass
+
 class ValidationError(ElectrospinningError):
     """Raised when local validation fails (e.g., invalid filter parameters)."""
     pass
