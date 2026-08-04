@@ -81,9 +81,20 @@ result = client.submit_experiment({
     "researchMetadata": {"publicationTitle": "My study"},
     "experimentData": [{"polymerProperty": {}, "processParameter": {}}],
 })
+print(result["records"][0]["status"])  # "PENDING", or "NEEDS_UPDATE" if a mandatory field was missing
 ```
 
-Reading/downloading the dataset never requires a token. See the [Authentication guide](https://electrospinning-data.org/docs/api/authentication) for details, token expiry/revocation, and error handling.
+Missing a mandatory field (e.g. polymer information) doesn't raise an error — the record is saved with status `"NEEDS_UPDATE"` and `result["records"][0]["missingFields"]` tells you what to fill in. Complete it later with `update_experiment`:
+
+```python
+client.update_experiment(result["records"][0]["recordId"], {
+    "userMetadata": {"name": "Jane Doe", "email": "jane@example.com", "consentTerms": True},
+    "experimentData": [{"polymerProperty": {"polymerComponents": [{"polymerName": "PVA"}]}}],
+})
+# -> status flips back to "PENDING"
+```
+
+Reading/downloading the dataset never requires a token. See the [Authentication guide](https://electrospinning-data.org/docs/api/authentication) for details, record statuses, token expiry/revocation, and error handling.
 
 ## API Reference
 
@@ -96,8 +107,9 @@ Main class for API interaction.
 - `download_version(version, filters=None)`: Returns a pandas DataFrame for a specific version.
 - `export_file(output_path, export_format='xlsx', version='latest', filters=None)`: Saves data to a local file.
 - `load_records(skip=0, limit=100, version='latest', filters=None)`: Returns a raw dictionary of paginated records.
-- `submit_experiment(payload)`: Submits a new experiment record. Requires `api_token`.
+- `submit_experiment(payload)`: Submits a new experiment record. Requires `api_token`. Returns a dict with per-record `status`/`missingFields`; missing mandatory fields are saved as `NEEDS_UPDATE` rather than raising.
 - `update_experiment(experiment_id, payload)`: Updates an existing experiment record. Requires `api_token`.
+- `get_submission_status(submission_id)`: Retrieves the current status of a submission you own. Requires `api_token`.
 
 ## License
 

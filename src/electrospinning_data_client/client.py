@@ -156,7 +156,7 @@ class ElectrospinningDataClient:
             filters=filters
         )
 
-    def submit_experiment(self, payload: Dict[str, Any]) -> str:
+    def submit_experiment(self, payload: Dict[str, Any]) -> Dict[str, Any]:
         """
         Submit a new experiment record for moderation. Requires `api_token` to
         have been passed when constructing the client - create a token from
@@ -171,31 +171,55 @@ class ElectrospinningDataClient:
                 "experimentData": [{"polymerProperty": {...}, "processParameter": {...}, ...}]
             }
 
+        Mandatory scientific fields (currently: polymer info, and any solvent
+        component's name) may be omitted - the record is still saved, just with
+        status "NEEDS_UPDATE" instead of "PENDING", so you can fill them in later
+        via `update_experiment`. This is a normal, successful outcome (no
+        exception is raised); inspect the returned `records[i]["status"]` and
+        `records[i]["missingFields"]` to see what's still needed.
+
         Args:
             payload: The submission payload.
 
         Returns:
-            The raw server response text (a status message).
+            A dict shaped like:
+
+                {
+                    "message": "Data submitted successfully",
+                    "submissionId": 123,
+                    "records": [
+                        {"recordId": 45, "status": "PENDING", "missingFields": []},
+                        {"recordId": 46, "status": "NEEDS_UPDATE",
+                         "missingFields": ["polymerProperty.polymerComponents[].polymerName"]}
+                    ]
+                }
 
         Raises:
             AuthenticationError: If no `api_token` was configured.
-            APIError: If the server rejects the token (missing/invalid/expired/revoked)
-                or the payload.
+            APIError: If the server rejects the token (missing/invalid/expired/revoked),
+                or a *provided* reference doesn't resolve (e.g. an unknown polymer name -
+                that's a data-quality error, not incompleteness, and always blocks).
         """
         return self._submission_service.submit(payload)
 
-    def update_experiment(self, experiment_id: int, payload: Dict[str, Any]) -> str:
+    def update_experiment(self, experiment_id: int, payload: Dict[str, Any]) -> Dict[str, Any]:
         """
-        Update an existing experiment record you previously submitted. Requires
-        `api_token` to have been passed when constructing the client. See
-        `submit_experiment` for the payload shape.
+        Update an existing experiment record you previously submitted - typically
+        used to fill in the fields flagged by a prior NEEDS_UPDATE response.
+        Requires `api_token` to have been passed when constructing the client.
+        See `submit_experiment` for the payload shape.
+
+        If the update now supplies all mandatory fields, the record's status
+        flips from "NEEDS_UPDATE" back to "PENDING" and re-enters the
+        moderation queue automatically.
 
         Args:
             experiment_id: The id of the experiment record to update.
             payload: The updated submission payload.
 
         Returns:
-            The raw server response text (a status message).
+            A dict shaped like:
+                {"recordId": 45, "status": "PENDING", "missingFields": [], "message": "..."}
 
         Raises:
             AuthenticationError: If no `api_token` was configured.
@@ -203,6 +227,26 @@ class ElectrospinningDataClient:
                 don't own the experiment).
         """
         return self._submission_service.update(experiment_id, payload)
+
+    def get_submission_status(self, submission_id: int) -> Dict[str, Any]:
+        """
+        Retrieve the current state of a submission you own, including the
+        status ("PENDING", "APPROVED", "REJECTED", "NEEDS_UPDATE", or "MIXED"
+        if its records have different statuses) of each experiment record in it.
+        Requires `api_token`.
+
+        Args:
+            submission_id: The id returned as `submissionId` by `submit_experiment`.
+
+        Returns:
+            The full submission, e.g. `{"submissionId": 123, "status": "NEEDS_UPDATE",
+            "experimentData": [...]}` - each item in `experimentData` has its own `status`.
+
+        Raises:
+            AuthenticationError: If no `api_token` was configured.
+            APIError: If the submission doesn't exist or isn't yours.
+        """
+        return self._submission_service.get_submission(submission_id)
 
     def close(self) -> None:
         """Close the underlying transport and release resources."""
