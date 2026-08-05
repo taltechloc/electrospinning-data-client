@@ -1,7 +1,7 @@
 from typing import Optional, Union, Dict, Any
 import pandas as pd
 
-from .client import ElectrospinningDataClient
+from .client import Client, ElectrospinningDataClient
 from .exceptions import (
     ElectrospinningError,
     APIError,
@@ -14,20 +14,17 @@ from .filters import FilterBuilder
 from .models import ExperimentRecord, VersionInfo
 from .mappers import DataFrameMapper
 
-# Backward compatibility alias
-ElectrospinningDataClient = ElectrospinningDataClient
-
-__version__ = "0.1.0"
+__version__ = "0.2.0"
 __all__ = [
+    "Client",
     "ElectrospinningDataClient",
-    "ElectrospinningDataClient", 
     "FilterBuilder",
     "ExperimentRecord",
     "VersionInfo",
     "DataFrameMapper",
-    "ElectrospinningError", 
-    "APIError", 
-    "ValidationError", 
+    "ElectrospinningError",
+    "APIError",
+    "ValidationError",
     "TransportError",
     "ParsingError",
     "AuthenticationError",
