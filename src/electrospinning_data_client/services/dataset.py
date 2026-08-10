@@ -25,8 +25,7 @@ class DatasetService:
                 else json.dumps(filters)
             )
 
-        endpoint = "/export" if version == "latest" else f"/{version}/export"
-        url = f"{self._base_url}{endpoint}"
+        url, params = self._export_url_and_params(version, params)
 
         response = self._transport.request("GET", url, params=params)
         data = response.json()
@@ -55,12 +54,25 @@ class DatasetService:
                 else json.dumps(filters)
             )
 
-        endpoint = "/export" if version == "latest" else f"/{version}/export"
-        url = f"{self._base_url}{endpoint}"
+        url, params = self._export_url_and_params(version, params)
 
         response = self._transport.request("GET", url, params=params)
         with open(output_path, "wb") as f:
             f.write(response.content)
+
+    def _export_url_and_params(self, version: str, params: Dict[str, Any]):
+        """Route a versioned export request.
+
+        Plain identifiers (e.g. "v1.0.0") use the /{version}/export path
+        shortcut. DOIs contain '/', which that path segment can't carry, so
+        they're passed via the generic /export endpoint's `version` query
+        param instead.
+        """
+        if version == "latest":
+            return f"{self._base_url}/export", params
+        if "/" in version:
+            return f"{self._base_url}/export", {**params, "version": version}
+        return f"{self._base_url}/{version}/export", params
 
     def load_paginated(
         self,

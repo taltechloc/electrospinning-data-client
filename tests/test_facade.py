@@ -232,6 +232,18 @@ class TestDownload(unittest.TestCase):
         self.assertEqual(args[1], "https://api.example.com/export")
 
     @patch('requests.Session.request')
+    def test_download_with_doi_version_uses_query_param_not_path(self, mock_request):
+        """DOIs contain '/', which the /{version}/export path can't carry -
+        must be routed through /export?version=<doi> instead."""
+        mock_request.return_value = _mock_ok([])
+
+        self.client.download(version="10.5281/zenodo.1234567")
+
+        args, kwargs = mock_request.call_args
+        self.assertEqual(args[1], "https://api.example.com/export")
+        self.assertEqual(kwargs["params"]["version"], "10.5281/zenodo.1234567")
+
+    @patch('requests.Session.request')
     def test_download_applies_filters(self, mock_request):
         mock_request.return_value = _mock_ok([])
 
