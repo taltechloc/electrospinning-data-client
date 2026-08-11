@@ -23,7 +23,9 @@ pip install electrospinning-data-client
 ```python
 from electrospinning_data_client import Client
 
-client = Client(token="esd_pat_your_token_here")  # omit token for read-only use
+# omit token for read-only use. For write operations (submit/update/status),
+# start in the sandbox environment -- see "Sandbox vs Production" below.
+client = Client(token="esd_sandbox_your_token_here", environment="sandbox")
 
 df = client.download()                          # latest dataset as a pandas DataFrame
 df = client.search(filters={"polymer": "PAN"})   # filtered query
@@ -87,12 +89,45 @@ client.export_file("my_data.xlsx", export_format="xlsx", filters={"polymer": "PA
 client.export_file("images.zip", export_format="zip")  # image archive
 ```
 
-### Submitting Data
+### Sandbox vs Production
 
-Submitting or updating experiment records requires a personal access token, created from your profile settings on [electrospinning-data.org](https://electrospinning-data.org) (Profile Settings → API Tokens):
+Two environments are deployed, and every write endpoint behaves identically in both:
+
+| | Sandbox | Production |
+| :--- | :--- | :--- |
+| Base URL | `https://sandbox-api.electrospinning-data.org` | `https://api.electrospinning-data.org` |
+| Token prefix | `esd_sandbox_...` | `esd_pat_...` |
+| Data | Disposable, isolated, may be periodically reset | Real records, goes through moderation |
+| `Client(...)` | `environment="sandbox"` | `environment="production"` |
+
+Create a token for each environment from Profile Settings → API Tokens (they're managed
+independently). A sandbox token only ever works against the sandbox API and a production token
+only ever works against production — this is enforced server-side, not just by convention.
+
+**Recommended workflow**: build and test your integration entirely against sandbox first, then
+switch to production only once it's verified — the only things that change are the token and
+`environment=` (or `base_url=`, if you're setting it explicitly):
 
 ```python
-client = Client(token="esd_pat_your_token_here")
+# 1. Develop and test against sandbox — safe to submit as much test data as you like.
+client = Client(token="esd_sandbox_...", environment="sandbox")
+result = client.submit(record)
+
+# 2. Once verified, promote to production — same code, new token and environment.
+client = Client(token="esd_pat_...", environment="production")
+result = client.submit(record)
+```
+
+If a token's prefix and the configured environment obviously disagree (e.g. an `esd_sandbox_...`
+token with `environment="production"`), the client raises `EnvironmentMismatchError` before
+making any network call. The server performs the real, authoritative check regardless.
+
+### Submitting Data
+
+Submitting or updating experiment records requires a personal access token, created from your profile settings on [electrospinning-data.org](https://electrospinning-data.org) (Profile Settings → API Tokens). This example uses sandbox — swap in a production token and `environment="production"` once you're ready for real submissions:
+
+```python
+client = Client(token="esd_sandbox_your_token_here", environment="sandbox")
 
 result = client.submit({
     "userMetadata": {"name": "Jane Doe", "email": "jane@example.com", "consentTerms": True},

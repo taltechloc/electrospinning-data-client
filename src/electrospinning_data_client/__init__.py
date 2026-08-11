@@ -2,13 +2,15 @@ from typing import Optional, Union, Dict, Any
 import pandas as pd
 
 from .client import Client, ElectrospinningDataClient
+from .environments import SANDBOX, PRODUCTION
 from .exceptions import (
     ElectrospinningError,
     APIError,
     ValidationError,
     TransportError,
     ParsingError,
-    AuthenticationError
+    AuthenticationError,
+    EnvironmentMismatchError
 )
 from .filters import FilterBuilder
 from .models import ExperimentRecord, VersionInfo
@@ -18,6 +20,8 @@ __version__ = "0.2.0"
 __all__ = [
     "Client",
     "ElectrospinningDataClient",
+    "SANDBOX",
+    "PRODUCTION",
     "FilterBuilder",
     "ExperimentRecord",
     "VersionInfo",
@@ -28,6 +32,7 @@ __all__ = [
     "TransportError",
     "ParsingError",
     "AuthenticationError",
+    "EnvironmentMismatchError",
     "load_latest_dataset",
     "load_versioned_dataset"
 ]

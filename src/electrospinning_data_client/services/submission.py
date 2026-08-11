@@ -1,6 +1,7 @@
 from typing import Any, Dict, List, Optional
 
-from ..exceptions import AuthenticationError
+from .. import environments
+from ..exceptions import AuthenticationError, EnvironmentMismatchError
 from ..transport import Transport
 
 
@@ -24,7 +25,28 @@ class SubmissionService:
                 "profile settings on the website, then pass it as `api_token=` when "
                 "constructing ElectrospinningDataClient."
             )
+        self._check_environment_match()
         return {"Authorization": f"Bearer {self._api_token}"}
+
+    def _check_environment_match(self) -> None:
+        """
+        Client-side convenience check: catch an obvious sandbox/production
+        mismatch before making a network call at all. Silently skipped
+        whenever either side (token prefix or URL host) isn't one of the two
+        recognized shapes -- e.g. a custom base_url pointing at localhost --
+        since that's not necessarily a mistake. The server performs the real,
+        authoritative check regardless of what happens here.
+        """
+        token_env = environments.infer_environment_from_token(self._api_token)
+        url_env = environments.infer_environment_from_url(self._root_url)
+        if token_env is not None and url_env is not None and token_env != url_env:
+            raise EnvironmentMismatchError(
+                f"This token looks like a {token_env} token (by its prefix), but the "
+                f"configured API endpoint ({self._root_url}) looks like {url_env}. "
+                "Use a token and endpoint from the same environment -- see the "
+                "`environment=` parameter on Client for the easiest way to keep them "
+                "in sync."
+            )
 
     def submit(self, payload: Dict[str, Any]) -> Dict[str, Any]:
         """POST a new experiment submission. Returns the parsed JSON result."""

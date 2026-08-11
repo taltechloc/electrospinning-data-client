@@ -3,6 +3,7 @@ from urllib.parse import urlsplit
 
 import pandas as pd
 
+from . import environments
 from .filters import FilterBuilder
 from .mappers import DataFrameMapper
 from .models import ExperimentRecord, VersionInfo
@@ -26,6 +27,25 @@ class Client:
         df = client.download()
         client.submit(payload)
 
+    Two environments are deployed: Sandbox (development/integration testing -
+    isolated, disposable data) and Production (real submissions). For write
+    integration work, create a sandbox token from your profile settings on
+    the website and pass `environment="sandbox"` while you build and test,
+    then switch to a production token and `environment="production"` once
+    you're ready to submit real records:
+
+        client = Client(token="esd_sandbox_...", environment="sandbox")
+        client.submit(payload)  # goes to sandbox-api.electrospinning-data.org
+
+        client = Client(token="esd_pat_...", environment="production")
+        client.submit(payload)  # goes to api.electrospinning-data.org, for real
+
+    `environment=` only sets defaults for `base_url`/`api_base_url` - an
+    explicit `base_url=`/`api_base_url=` always wins if given, so existing
+    code that already passes a custom URL is never silently redirected.
+    Omitting both `environment` and `base_url` keeps today's default (the
+    production read API), so existing read-only usage is unaffected.
+
     Every method below has a short, Pythonic alias (`submit`, `update`,
     `status`, `download`, `search`, `records`, `record_ids`, `versions`) as
     well as its original, more descriptive name (`submit_experiment`,
@@ -38,19 +58,23 @@ class Client:
 
     def __init__(
         self,
-        base_url: str = "https://api.electrospinning-data.org/public/dataset",
+        base_url: Optional[str] = None,
         transport: Optional[Transport] = None,
         timeout: int = 60,
         verify: bool = True,
         token: Optional[str] = None,
         api_token: Optional[str] = None,
-        api_base_url: Optional[str] = None
+        api_base_url: Optional[str] = None,
+        environment: Optional[str] = None,
     ):
         """
         Initialize the Electrospinning Data API client.
 
         Args:
-            base_url: The base URL of the public (read) API.
+            base_url: The base URL of the public (read) API. Takes precedence
+                over `environment` if both are given. Defaults to the
+                production read API if neither `base_url` nor `environment`
+                is given, matching this client's historical default.
             transport: Custom HTTP transport implementation.
             timeout: Default request timeout in seconds.
             verify: Whether to verify SSL certificates.
@@ -62,27 +86,50 @@ class Client:
             api_token: Deprecated alias for `token`, kept for backward
                 compatibility. Ignored if `token` is also given.
             api_base_url: Root URL of the API used for write operations, e.g.
-                "https://api.electrospinning-data.org". Defaults to the scheme and
-                host of `base_url`, since write endpoints live outside the
-                `/public/dataset` read API.
+                "https://api.electrospinning-data.org". Takes precedence over
+                `environment` if both are given. Defaults to the scheme and
+                host of `base_url` (or, if `environment` is given and
+                `base_url` isn't, that environment's write API root), since
+                write endpoints live outside the `/public/dataset` read API.
+            environment: `"sandbox"` or `"production"` (case-insensitive).
+                Sets the default for `base_url`/`api_base_url` to that
+                environment's known URLs - see the class docstring for the
+                intended sandbox-first write-integration workflow. Ignored
+                for whichever of `base_url`/`api_base_url` is explicitly
+                given. `None` (default) preserves this client's historical
+                behavior: no environment-based defaulting, and a client-side
+                token/URL mismatch check (see `EnvironmentMismatchError`) is
+                skipped for the URL side.
         """
-        self.base_url = base_url.rstrip("/")
+        if base_url is not None:
+            self.base_url = base_url.rstrip("/")
+        elif environment is not None:
+            self.base_url, _ = environments.resolve_urls(environment)
+        else:
+            self.base_url = environments.DEFAULT_BASE_URL
+
         self.transport = transport or RequestsTransport(
             timeout=timeout, verify=verify
         )
 
         if api_base_url:
             self.api_base_url = api_base_url.rstrip("/")
+        elif environment is not None:
+            _, self.api_base_url = environments.resolve_urls(environment)
         else:
             parsed = urlsplit(self.base_url)
             self.api_base_url = f"{parsed.scheme}://{parsed.netloc}"
+
+        self.environment = environment.strip().lower() if environment else None
 
         resolved_token = token if token is not None else api_token
 
         # Internal services
         self._dataset_service = DatasetService(self.transport, self.base_url)
         self._version_service = VersionService(self.transport, self.base_url)
-        self._submission_service = SubmissionService(self.transport, self.api_base_url, resolved_token)
+        self._submission_service = SubmissionService(
+            self.transport, self.api_base_url, resolved_token
+        )
 
     def download_latest(
         self,
